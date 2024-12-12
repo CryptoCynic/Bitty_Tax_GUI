@@ -43,6 +43,8 @@ python bitty_tax_gui.py
 - 📊 Tax Report: Generate tax calculations
 - 🔍 Audit: Review wallet balances
 - 🌍 International Settings: Configure currency and timezone preferences
+- ⚠️ No 1: With currencies other than British pound you can create the pdf report but the inside GUI (No PDF) report has errors
+- ⚠️ No 2: You will find produced PDFs and CSVs in `reports` folder and the logs in `logs` folder.
 
 ## 💝 Support Development
 If you find this tool helpful, consider supporting development through crypto donations:
