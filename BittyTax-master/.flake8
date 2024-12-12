@@ -1,0 +1,6 @@
+[flake8]
+# F403: 'from module import *' used; unable to detect undefined names
+# F401: Module imported but unused
+# E203: whitespace before ':' - to be compatible with Black
+extend-ignore = F403, F401, E203
+max-line-length = 100

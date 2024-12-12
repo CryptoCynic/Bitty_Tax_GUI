@@ -1,0 +1,5 @@
+2024-12-12 22:17:37,558 - BittyTaxGUI - INFO - BittyTax GUI application started
+2024-12-12 22:17:37,591 - BittyTaxGUI - INFO - Logo loaded successfully
+2024-12-12 22:17:42,283 - BittyTaxGUI - INFO - Selected files: /home/whoami/Documents/CRYPTO/Bitty_Tax_GUI/bitty_tax_gui/example.xlsx
+2024-12-12 22:17:43,365 - BittyTaxGUI - INFO - Starting file processing
+2024-12-12 22:17:43,366 - BittyTaxGUI - INFO - Executing command: bittytax /home/whoami/Documents/CRYPTO/Bitty_Tax_GUI/bitty_tax_gui/example.xlsx
