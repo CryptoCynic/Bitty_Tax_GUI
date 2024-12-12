@@ -1,0 +1,2 @@
+2024-12-12 20:05:02,441 - BittyTaxGUI - INFO - BittyTax GUI application started
+2024-12-12 20:05:02,475 - BittyTaxGUI - ERROR - Error loading logo: <built-in function configure_viewport> returned a result with an exception set
