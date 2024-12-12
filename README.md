@@ -13,8 +13,11 @@ A modern graphical user interface for BittyTax - the UK Cryptoasset Tax Calculat
 This GUI is built on top of [BittyTax](https://github.com/BittyTax/BittyTax), the original command-line crypto tax calculator. All tax calculation logic and core functionality is from the original BittyTax project.
 
 ## ⚙️ Requirements
-- Python 3.11.11 (tested and verified)
-- BittyTax (`pip install bittytax`)
+- Python 3.11.11 (tested successfully in this version of Python)
+- BittyTax installation 
+```bash
+pip install bittytax
+```
 - Navigate to `bitty_tax_gui` subdir:
 ```bash
 cd bitty_tax_gui
