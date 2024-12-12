@@ -15,6 +15,10 @@ This GUI is built on top of [BittyTax](https://github.com/BittyTax/BittyTax), th
 ## ⚙️ Requirements
 - Python 3.11.11 (tested and verified)
 - BittyTax (`pip install bittytax`)
+- Navigate to `bitty_tax_gui` subdir:
+```bash
+cd bitty_tax_gui
+```
 - Required packages:
 ```bash
 pip install -r requirements.txt
