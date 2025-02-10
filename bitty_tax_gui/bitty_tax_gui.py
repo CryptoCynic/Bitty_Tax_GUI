@@ -12,6 +12,9 @@ import os
 import pytz
 from PIL import Image
 import numpy as np
+from dotenv import load_dotenv
+import google.generativeai as genai
+from openai import OpenAI
 
 class BittyTaxGUI:
     def __init__(self):
@@ -19,6 +22,10 @@ class BittyTaxGUI:
         self.processing = False
         self.selected_files = []
         self.current_file = None
+        # Initialize LLM Chat feature
+        self.ai_service = 'gemini'  # Set to 'gemini' to use Google Gemini instead
+        self.ai_client = self._setup_ai_client()
+        self.chat_history = []
         # Tax years range (2009-2025)
         self.tax_years = [year for year in range(2025, 2008, -1)]
 
@@ -54,6 +61,7 @@ class BittyTaxGUI:
             title="BittyTax Manager",
             width=1280,
             height=800,
+            resizable=True,
             small_icon="assets/logo_small.ico",
             large_icon="assets/logo_large.ico"
         )
@@ -214,6 +222,7 @@ class BittyTaxGUI:
                 self.create_audit_tab()
                 self.create_international_tab()
                 self.create_settings_tab()
+                self.create_llm_chat_tab()
 
 
     def process_files(self):
@@ -574,6 +583,7 @@ class BittyTaxGUI:
         dpg.set_value(self.tax_log_window, "Generating tax report...\n")
 
         try:
+            # Collect user inputs for report generation
             tax_year = dpg.get_value(self.tax_year)
             report_types = dpg.get_value(self.report_types)
             output_dir = dpg.get_value("output_dir_input")
@@ -613,14 +623,44 @@ class BittyTaxGUI:
             if dpg.get_value("debug_mode"):
                 args.append('--debug')
 
+            # Generate the report using BittyTax command
             output = self.run_bittytax_command(None, args)
 
+            # Display success message
             success_message = f"Report generated successfully!\nLocation: {output_file}"
             if output:
                 success_message += f"\n\nOutput:\n{output}"
 
             dpg.set_value(self.tax_log_window, success_message)
             self.logger.info(f"Report generated at: {output_file}")
+
+            # Automatically extract text from the generated PDF and load it into the chat context
+            try:
+                import fitz  # PyMuPDF; ensure this is installed via pip install pymupdf
+
+                reports_dir = Path.cwd() / "reports"
+                # Find all PDF files in the subdirectory
+                pdf_files = list(reports_dir.glob("*.pdf"))
+                if pdf_files:
+                    # Select the latest PDF based on modification time
+                    latest_pdf = max(pdf_files, key=lambda f: f.stat().st_mtime)
+                    with fitz.open(str(latest_pdf)) as pdf_doc:
+                        extracted_text = ""
+                        for page in pdf_doc:
+                            extracted_text += page.get_text("text") + "\n"
+
+                    # Load the extracted text into LLM chat context
+                    self.load_report_to_chat(extracted_text)
+                    self.logger.info(f"Extracted report text loaded from {latest_pdf} into LLM chat context.")
+                else:
+                    self.logger.warning("No PDF files found in the 'reports' directory.")
+            except Exception as e:
+                self.logger.error(f"Failed to extract text from PDF: {str(e)}")
+
+            except Exception as e:
+                error_msg = f"Failed to extract text from PDF: {str(e)}"
+                self.logger.error(error_msg)
+                dpg.set_value(self.tax_log_window, error_msg)
 
         except Exception as e:
             error_msg = f"Error generating report: {str(e)}"
@@ -729,6 +769,113 @@ class BittyTaxGUI:
                     width=120
                 )
                 dpg.add_text("", tag="settings_status", wrap=400)
+    def _setup_ai_client(self):
+        """Initialize the AI client using the API key from the .env file."""
+        load_dotenv()
+        if self.ai_service == 'openai':
+            import openai  # Ensures the proper module is used
+            openai.api_key = os.getenv('OPENAI_API_KEY')
+            return openai  # Return the openai module to be used later
+        elif self.ai_service == 'gemini':
+            genai.configure(api_key=os.getenv('GOOGLE_API_KEY'))
+            return genai.GenerativeModel('gemini-2.0-pro-exp-02-05')
+        else:
+            raise ValueError("Invalid AI service")
+
+    def create_llm_chat_tab(self):
+        """Create the LLM Chat tab for discussion and recommendations."""
+        with dpg.tab(label="LLM Chat"):
+            with dpg.group():
+                # Make chat log resizable by setting width and height dynamically
+                self.chat_log = dpg.add_input_text(
+                    multiline=True,
+                    height=400,  # Increased height for better readability
+                    width=800,   # Increased width
+                    readonly=True,
+                    tag="chat_log"
+                )
+            with dpg.group(horizontal=True):
+                # Input field for user’s query
+                self.chat_input = dpg.add_input_text(
+                    label="Your Message",
+                    width=700,
+                    tag="chat_input"
+                )
+                dpg.add_button(
+                    label="Send",
+                    callback=self.send_chat_message,
+                    tag="send_button"
+                )
+
+
+    def update_chat_log(self):
+        """Refresh the chat log display based on conversation history."""
+        chat_content = ""
+        for msg in self.chat_history:
+            role = msg.get("role", "unknown")
+            content = msg.get("content", "")
+            chat_content += f"[{role}] {content}\n\n"
+        dpg.set_value("chat_log", chat_content)
+
+    def send_chat_message(self):
+        """Handle sending user's message and start processing the response."""
+        user_message = dpg.get_value("chat_input")
+        if not user_message.strip():
+            return
+        self.chat_history.append({"role": "user", "content": user_message})
+        self.update_chat_log()
+        dpg.set_value("chat_input", "")
+        # Process the query on a background thread to keep the GUI responsive
+        threading.Thread(
+            target=self.process_chat_message,
+            args=(user_message,),
+            daemon=True
+        ).start()
+
+    def process_chat_message(self, user_message: str):
+        """Query the LLM service using the current conversation history."""
+        try:
+            response_text = self.query_llm(self.chat_history)
+            if response_text:
+                self.chat_history.append({"role": "assistant", "content": response_text})
+        except Exception as e:
+            self.chat_history.append({"role": "assistant", "content": f"Error: {str(e)}"})
+        self.update_chat_log()
+
+    def query_llm(self, messages):
+        """Send the conversation history to Gemini and get a response."""
+        if self.ai_service == 'gemini':
+            # Build a prompt from the conversation history
+            prompt = "\n".join([f"{msg['role']}: {msg['content']}" for msg in messages])
+
+            # Log the prompt for debugging
+            self.logger.info(f"Prompt sent to Gemini: {prompt}")
+
+            # Call generate_content with the prompt as a positional argument
+            response = self.ai_client.generate_content(prompt)
+
+            # Log the response for debugging
+            self.logger.info(f"Response from Gemini: {response.text}")
+
+            return response.text.strip() if response and hasattr(response, 'text') else ""
+        else:
+            raise ValueError("Invalid AI service")
+
+
+    def load_report_to_chat(self, report_text: str):
+        """Automatically load a report into the chat context for discussion."""
+        self.report_text = report_text
+        introduction = f"Here is the report context:\n{report_text}\n"
+        self.chat_history.append({"role": "system", "content": introduction})
+        self.update_chat_log()
+    def load_report_to_chat(self, report_text: str):
+        """Automatically load a tax report into the chat context."""
+        self.report_text = report_text
+        introduction = f"Here is the tax report context:\n{report_text}\n"
+        # Add the report as a system message in the chat history
+        self.chat_history.append({"role": "system", "content": introduction})
+        self.update_chat_log()
+
 
     def save_settings(self):
         self.logger.info("Saving settings")
