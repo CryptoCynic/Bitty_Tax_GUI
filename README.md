@@ -8,6 +8,28 @@ A modern graphical user interface for BittyTax - the UK Cryptoasset Tax Calculat
 - 🌍 International currency support
 - 📄 PDF report generation through the GUI
 - 💼 Support for all BittyTax features
+- 🤖 AI-powered tax analysis with LLM Chat
+- 💬 Interactive report discussion
+- 🔄 Automatic PDF text extraction
+
+## 🤖 LLM Chat Setup
+1. Create `.env` file in project root:
+```ini
+GOOGLE_API_KEY=your_gemini_api_key_here
+```
+
+2. Install additional packages:
+```bash
+pip install google-generativeai python-dotenv pymupdf
+```
+
+3. Usage:
+- Generate a tax report
+- Open "LLM Chat" tab
+- Ask questions about your report
+- Get AI-powered analysis and recommendations
+
+Note: The LLM has internet access for up-to-date tax information and regulations.
 
 ## 🙏 Credits
 This GUI is built on top of [BittyTax](https://github.com/BittyTax/BittyTax), the original command-line crypto tax calculator. All tax calculation logic and core functionality is from the original BittyTax project.
@@ -52,6 +74,8 @@ python bitty_tax_gui.py
 - 🌍 International Settings: Configure currency and timezone preferences
 - ⚠️ No 1: With currencies other than British pound you can create the pdf report but the inside GUI (No PDF) report has errors
 - ⚠️ No 2: You will find produced PDFs and CSVs in `reports` folder and the logs in `logs` folder.
+- I'll add the LLM Chat feature documentation concisely to your README.md, integrating it with the existing content. Add this under the Features section and as a new setup section:
+
 
 ## 💝 Support Development
 If you find this tool helpful, consider supporting development through crypto donations:
